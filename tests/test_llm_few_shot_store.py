@@ -358,6 +358,28 @@ def test_store_to_dict_preserves_next_id():
     assert d["next_id"] == 2
 
 
+def test_from_dict_missing_next_id_derives_from_max_id():
+    # Data without an explicit "next_id" (e.g. hand-written) must still
+    # produce a counter past the highest existing ID, so that subsequent
+    # adds cannot collide with restored examples.
+    data = {
+        "examples": [
+            {"id": 1, "user_input": "q1", "assistant_output": "a1"},
+            {"id": 5, "user_input": "q5", "assistant_output": "a5"},
+        ]
+    }
+    store = ExampleStore.from_dict(data, clock=lambda: 0.0)
+    new = store.add("new", "new_a")
+    assert new.id == 6
+    ids = [ex.id for ex in store.all()]
+    assert len(ids) == len(set(ids))  # no duplicate IDs
+
+
+def test_from_dict_missing_next_id_empty_store():
+    store = ExampleStore.from_dict({"examples": []}, clock=lambda: 0.0)
+    assert store.add("q", "a").id == 1
+
+
 def test_store_repr():
     store = ExampleStore()
     assert "ExampleStore" in repr(store)

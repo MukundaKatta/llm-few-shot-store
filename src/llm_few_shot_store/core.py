@@ -249,7 +249,13 @@ class ExampleStore:
         store = cls(clock=clock)
         for ed in data.get("examples", []):
             store._examples.append(FewShotExample.from_dict(ed))
-        store._next_id = int(data.get("next_id", len(store._examples) + 1))
+        if "next_id" in data:
+            store._next_id = int(data["next_id"])
+        else:
+            # No explicit counter: derive it from the existing IDs so that
+            # freshly added examples never collide with restored ones.
+            highest = max((ex.id for ex in store._examples), default=0)
+            store._next_id = highest + 1
         return store
 
     def __repr__(self) -> str:
